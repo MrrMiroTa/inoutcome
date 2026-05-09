@@ -1,8 +1,10 @@
 // Income & Outcome Tracker App
 // Main App Component with full state management, currency conversion, auto-refresh,
-// CRUD operations for income/outcome entries, and daily filtering.
+// CRUD operations for income/outcome entries, daily filtering, and PDF export.
 
 import { useState, useEffect, useCallback, useRef } from "react";
+import jsPDF from "jspdf";
+import "jspdf-autotable";
 
 // Exchange rate: 1 USD = 4000 KHR (Cambodian Riel)
 const USD_TO_RIEL = 4000;
@@ -90,7 +92,7 @@ function TransactionForm({ onSubmit, editingEntry, onCancel }) {
       className="w-full max-w-2xl mx-auto bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-6 md:p-8 mb-8 border border-gray-200 dark:border-gray-700"
     >
       <h2 className="text-xl md:text-2xl font-bold text-gray-800 dark:text-white mb-6 text-center">
-        {editingEntry ? "✏️ Edit Entry" : "+ Add New Entry"}
+        {editingEntry ? "Edit Entry" : "+ Add New Entry"}
       </h2>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -109,7 +111,7 @@ function TransactionForm({ onSubmit, editingEntry, onCancel }) {
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
-              💰 Income
+              Income
             </button>
             <button
               type="button"
@@ -120,7 +122,7 @@ function TransactionForm({ onSubmit, editingEntry, onCancel }) {
                   : "bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600"
               }`}
             >
-              💸 Outcome
+              Outcome
             </button>
           </div>
         </div>
@@ -167,8 +169,8 @@ function TransactionForm({ onSubmit, editingEntry, onCancel }) {
             onChange={(e) => setCurrency(e.target.value)}
             className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-base appearance-none cursor-pointer"
           >
-            <option value="USD">💵 USD</option>
-            <option value="KHR">💴 KHR (Riel)</option>
+            <option value="USD">USD</option>
+            <option value="KHR">KHR (Riel)</option>
           </select>
         </div>
 
@@ -192,7 +194,7 @@ function TransactionForm({ onSubmit, editingEntry, onCancel }) {
             type="submit"
             className="flex-1 py-3 px-6 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-xl hover:from-blue-700 hover:to-indigo-700 active:scale-95 transition-all duration-200 shadow-lg shadow-blue-200 dark:shadow-blue-900/30"
           >
-            {editingEntry ? "✅ Update Entry" : "➕ Add Entry"}
+            {editingEntry ? "Update Entry" : "Add Entry"}
           </button>
           {editingEntry && (
             <button
@@ -247,37 +249,37 @@ function BalanceCard({ entries, selectedDate, currency }) {
       {/* Total Income */}
       <div className={cardClass}>
         <div className="text-sm font-medium text-green-600 dark:text-green-400 uppercase tracking-wider mb-2">
-          💰 Total Income
+          Total Income
         </div>
         <div className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
           {currency === "USD"
-            ? `$${formatNumber(totalIncomeUSD)}`
-            : `៛${formatRiel(totalIncomeKHR)}`}
+            ? "$" + formatNumber(totalIncomeUSD)
+            : "៛" + formatRiel(totalIncomeKHR)}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          USD: ${formatNumber(totalIncomeUSD)} | KHR: រ{formatRiel(totalIncomeKHR)}
+          USD: ${formatNumber(totalIncomeUSD)} | KHR: ៛{formatRiel(totalIncomeKHR)}
         </div>
       </div>
 
       {/* Total Outcome */}
       <div className={cardClass}>
         <div className="text-sm font-medium text-red-500 dark:text-red-400 uppercase tracking-wider mb-2">
-          💸 Total Outcome
+          Total Outcome
         </div>
         <div className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
           {currency === "USD"
-            ? `$${formatNumber(totalOutcomeUSD)}`
-            : `៛${formatRiel(totalOutcomeKHR)}`}
+            ? "$" + formatNumber(totalOutcomeUSD)
+            : "៛" + formatRiel(totalOutcomeKHR)}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          USD: ${formatNumber(totalOutcomeUSD)} | KHR: រ{formatRiel(totalOutcomeKHR)}
+          USD: ${formatNumber(totalOutcomeUSD)} | KHR: ៛{formatRiel(totalOutcomeKHR)}
         </div>
       </div>
 
       {/* Balance */}
       <div className={`${cardClass} ${balanceUSD >= 0 ? "border-green-400/30" : "border-red-400/30"}`}>
         <div className="text-sm font-medium text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">
-          ⚖️ Balance
+          Balance
         </div>
         <div
           className={`text-2xl md:text-3xl font-extrabold ${
@@ -285,19 +287,19 @@ function BalanceCard({ entries, selectedDate, currency }) {
           }`}
         >
           {currency === "USD"
-            ? `${balanceUSD >= 0 ? "+" : ""}$${formatNumber(Math.abs(balanceUSD))}`
-            : `${balanceKHR >= 0 ? "+" : ""}៛${formatRiel(Math.abs(balanceKHR))}`}
+            ? (balanceUSD >= 0 ? "+" : "") + "$" + formatNumber(Math.abs(balanceUSD))
+            : (balanceKHR >= 0 ? "+" : "") + "៛" + formatRiel(Math.abs(balanceKHR))}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           USD: {balanceUSD >= 0 ? "+" : ""}${formatNumber(Math.abs(balanceUSD))} | KHR:{" "}
-          {balanceKHR >= 0 ? "+" : ""}រ{formatRiel(Math.abs(balanceKHR))}
+          {balanceKHR >= 0 ? "+" : ""}៛{formatRiel(Math.abs(balanceKHR))}
         </div>
       </div>
 
       {/* Entry Count */}
       <div className={cardClass}>
         <div className="text-sm font-medium text-purple-600 dark:text-purple-400 uppercase tracking-wider mb-2">
-          📊 Transactions
+          Transactions
         </div>
         <div className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
           {filtered.length}
@@ -319,7 +321,7 @@ function TransactionList({ entries, selectedDate, onEdit, onDelete, currency }) 
   if (filtered.length === 0) {
     return (
       <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
-        <div className="text-5xl mb-4">📭</div>
+        <div className="text-5xl mb-4">No Data</div>
         <p className="text-gray-500 dark:text-gray-400 text-lg">
           No transactions for this date
         </p>
@@ -334,7 +336,7 @@ function TransactionList({ entries, selectedDate, onEdit, onDelete, currency }) 
     <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
       <div className="p-4 md:p-6 border-b border-gray-200 dark:border-gray-700">
         <h3 className="text-lg font-bold text-gray-800 dark:text-white">
-          📋 Transactions for {selectedDate}
+          Transactions for {selectedDate}
           <span className="ml-2 text-sm font-normal text-gray-500 dark:text-gray-400">
             ({filtered.length} entries)
           </span>
@@ -372,7 +374,7 @@ function TransactionItem({ entry, currency, onEdit, onDelete }) {
               : "bg-red-100 dark:bg-red-900/30 text-red-500 dark:text-red-400"
           }`}
         >
-          {isIncome ? "💰" : "💸"}
+          {isIncome ? "Income" : "Outcome"}
         </div>
 
         <div className="min-w-0 flex-1">
@@ -392,13 +394,13 @@ function TransactionItem({ entry, currency, onEdit, onDelete }) {
           </div>
           <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
             <span className="hidden sm:inline">
-              {entry.currency === "USD" ? "💵 USD" : "💴 KHR"}
+              {entry.currency === "USD" ? "USD" : "KHR"}
             </span>
-            <span className="mx-1 hidden sm:inline">•</span>
+            <span className="mx-1 hidden sm:inline">-</span>
             <span>
               {entry.currency === "USD"
-                ? `$ ${formatNumber(entry.amount)}`
-                : `៛ ${formatRiel(entry.amount)}`}
+                ? "$ " + formatNumber(entry.amount)
+                : "\u17DB " + formatRiel(entry.amount)}
             </span>
             {currency === "USD" && entry.currency === "KHR" && (
               <span className="text-gray-400 dark:text-gray-500 ml-1">
@@ -407,7 +409,7 @@ function TransactionItem({ entry, currency, onEdit, onDelete }) {
             )}
             {currency === "KHR" && entry.currency === "USD" && (
               <span className="text-gray-400 dark:text-gray-500 ml-1">
-                (~៛ {formatRiel(convertedAmount * USD_TO_RIEL)})
+                (~$\u17DB{formatRiel(convertedAmount * USD_TO_RIEL)})
               </span>
             )}
           </div>
@@ -453,7 +455,7 @@ export default function App() {
     saveEntries(entries);
   }, [entries]);
 
-  // Auto-refresh every 30 seconds (re-renders current state — for live clock feel)
+  // Auto-refresh every 30 seconds (re-renders current state — for live feel)
   useEffect(() => {
     refreshTimerRef.current = setInterval(() => {
       setIsRefreshing(true);
@@ -495,6 +497,96 @@ export default function App() {
     setEditingEntry(null);
   }, []);
 
+  // Export to PDF
+  const handleExportPDF = useCallback(() => {
+    const doc = new jsPDF("landscape", "mm", "a4");
+
+    // Title
+    doc.setFontSize(20);
+    doc.setTextColor(30, 58, 138);
+    doc.text("Income & Outcome Report", 148, 18, { align: "center" });
+
+    doc.setFontSize(10);
+    doc.setTextColor(100);
+    doc.text("Generated on: " + new Date().toLocaleString("en-US"), 148, 26, {
+      align: "center",
+    });
+    doc.text("Exchange Rate: 1 USD = 4,000 KHR", 148, 33, {
+      align: "center",
+    });
+
+    // Filter entries for selected date
+    const filtered = entries.filter((e) => e.date === selectedDate);
+    const incomeEntries = filtered.filter((e) => e.type === "income");
+    const outcomeEntries = filtered.filter((e) => e.type === "outcome");
+
+    const incomeUSD = incomeEntries
+      .filter((e) => e.currency === "USD")
+      .reduce((s, e) => s + e.amount, 0);
+    const incomeKHR = incomeEntries
+      .filter((e) => e.currency === "KHR")
+      .reduce((s, e) => s + e.amount, 0);
+    const outcomeUSD = outcomeEntries
+      .filter((e) => e.currency === "USD")
+      .reduce((s, e) => s + e.amount, 0);
+    const outcomeKHR = outcomeEntries
+      .filter((e) => e.currency === "KHR")
+      .reduce((s, e) => s + e.amount, 0);
+
+    const totalIncomeUSD = incomeUSD + incomeKHR / USD_TO_RIEL;
+    const totalOutcomeUSD = outcomeUSD + outcomeKHR / USD_TO_RIEL;
+    const balanceUSD = totalIncomeUSD - totalOutcomeUSD;
+    const totalIncomeKHR = incomeUSD * USD_TO_RIEL + incomeKHR;
+    const totalOutcomeKHR = outcomeUSD * USD_TO_RIEL + outcomeKHR;
+    const balanceKHR = totalIncomeKHR - totalOutcomeKHR;
+
+// Summary table
+    doc.autoTable({
+      startY: 40,
+      head: [["Summary", "USD", "KHR"]],
+      body: [
+        ["Total Income", "$" + formatNumber(totalIncomeUSD), "KHR " + formatRiel(totalIncomeKHR)],
+        ["Total Outcome", "$" + formatNumber(totalOutcomeUSD), "KHR " + formatRiel(totalOutcomeKHR)],
+        ["Balance", (balanceUSD >= 0 ? "+" : "") + "$" + formatNumber(Math.abs(balanceUSD)), (balanceKHR >= 0 ? "+" : "") + "KHR " + formatRiel(Math.abs(balanceKHR))],
+      ],
+      styles: { fontSize: 10, cellPadding: 4 },
+      headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [240, 244, 255] },
+    });
+
+    // Transaction table
+    const tableBody = filtered
+      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+      .map((entry) => [
+        entry.type === "income" ? "Income" : "Outcome",
+        entry.description,
+        entry.currency === "USD" ? "$" + formatNumber(entry.amount) : "KHR " + formatRiel(entry.amount),
+        entry.currency === "USD" ? "$" + formatNumber(entry.amount) : "$" + formatNumber(entry.amount / USD_TO_RIEL),
+        entry.date,
+      ]);
+
+    doc.autoTable({
+      startY: doc.lastAutoTable.finalY + 10,
+      head: [["Type", "Description", "Original Amount", "USD Equivalent", "Date"]],
+      body: tableBody,
+      styles: { fontSize: 9, cellPadding: 3 },
+      headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold" },
+      alternateRowStyles: { fillColor: [245, 248, 255] },
+    });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(150);
+    doc.text(
+      "In-Outcome Tracker | " + new Date().toLocaleDateString("en-US") + " | Page " + doc.internal.getNumberOfPages(),
+      148,
+      doc.internal.pageSize.height - 10,
+      { align: "center" }
+    );
+
+    doc.save("inoutcome-report-" + selectedDate + ".pdf");
+  }, [entries, selectedDate]);
+
   // Quick date presets
   const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
@@ -507,7 +599,7 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="text-center md:text-left">
               <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight">
-                💰 In-Out Tracker
+                In-Out Tracker
               </h1>
               <p className="text-blue-200 text-sm mt-1">
                 Track your income and outcome daily
@@ -522,8 +614,8 @@ export default function App() {
                   onChange={(e) => setCurrency(e.target.value)}
                   className="bg-white/90 dark:bg-gray-800 text-gray-800 dark:text-white text-sm font-semibold rounded-lg px-3 py-1.5 border-0 focus:ring-2 focus:ring-blue-400 cursor-pointer"
                 >
-                  <option value="USD">💵 USD</option>
-                  <option value="KHR">💴 KHR (Riel)</option>
+                  <option value="USD">USD</option>
+                  <option value="KHR">KHR (Riel)</option>
                 </select>
               </div>
               {/* Refresh indicator */}
@@ -533,9 +625,20 @@ export default function App() {
                     isRefreshing ? "bg-green-500/20 text-green-200" : "bg-white/20 text-blue-200"
                   } transition-all duration-300`}
                 >
-                  {isRefreshing ? "🔄 Updated" : "✅ Auto-refresh"}
+                  {isRefreshing ? "Updated" : "Auto-refresh"}
                 </div>
               </div>
+              {/* Export PDF Button */}
+              <button
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white px-3 py-2 rounded-xl text-sm font-medium transition-all duration-200 border border-white/20"
+                title="Export to PDF"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export PDF
+              </button>
             </div>
           </div>
         </div>
@@ -547,7 +650,7 @@ export default function App() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
             <div className="flex items-center gap-3">
               <label className="text-sm font-semibold text-gray-600 dark:text-gray-300 whitespace-nowrap">
-                📅 Select Date:
+                Select Date:
               </label>
               <input
                 type="date"
@@ -561,23 +664,36 @@ export default function App() {
                 onClick={() => setSelectedDate(today)}
                 className="px-4 py-2.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-xl text-sm font-medium hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
               >
-                📆 Today
+                Today
               </button>
               <button
                 onClick={() => setSelectedDate(yesterday)}
                 className="px-4 py-2.5 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
               >
-                ⬅️ Yesterday
+                Yesterday
               </button>
             </div>
           </div>
           <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-            🔄 Page auto-refreshes every 30 seconds. Exchange rate: 1 USD = 4,000 KHR
+            Auto-refresh every 30 seconds. Exchange rate: 1 USD = 4,000 KHR
           </p>
         </div>
 
         {/* Balance Cards */}
         <BalanceCard entries={entries} selectedDate={selectedDate} currency={currency} />
+
+        {/* Export PDF Button */}
+        <div className="flex justify-center mb-6">
+          <button
+            onClick={handleExportPDF}
+            className="flex items-center gap-2 py-3 px-6 bg-gradient-to-r from-green-500 to-emerald-600 text-white font-bold rounded-xl hover:from-green-600 hover:to-emerald-700 active:scale-95 transition-all duration-200 shadow-lg shadow-green-200/30"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
+            Export Report to PDF
+          </button>
+        </div>
 
         {/* Transaction Form */}
         <TransactionForm
@@ -598,7 +714,7 @@ export default function App() {
 
       {/* Footer */}
       <footer className="text-center py-6 text-sm text-gray-400 dark:text-gray-500">
-        In-Outcome Tracker © {new Date().getFullYear()} | Built with React + Vite + Tailwind CSS
+        In-Outcome Tracker {new Date().getFullYear()} | Built By Uzita
       </footer>
     </div>
   );
