@@ -254,10 +254,10 @@ function BalanceCard({ entries, selectedDate, currency }) {
         <div className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
           {currency === "USD"
             ? "$" + formatNumber(totalIncomeUSD)
-            : "៛" + formatRiel(totalIncomeKHR)}
+            : "KHR " + formatRiel(totalIncomeKHR)}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          USD: ${formatNumber(totalIncomeUSD)} | KHR: ៛{formatRiel(totalIncomeKHR)}
+          USD: ${formatNumber(totalIncomeUSD)} | KHR: KHR {formatRiel(totalIncomeKHR)}
         </div>
       </div>
 
@@ -269,10 +269,10 @@ function BalanceCard({ entries, selectedDate, currency }) {
         <div className="text-2xl md:text-3xl font-extrabold text-gray-900 dark:text-white">
           {currency === "USD"
             ? "$" + formatNumber(totalOutcomeUSD)
-            : "៛" + formatRiel(totalOutcomeKHR)}
+            : "KHR " + formatRiel(totalOutcomeKHR)}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-          USD: ${formatNumber(totalOutcomeUSD)} | KHR: ៛{formatRiel(totalOutcomeKHR)}
+          USD: ${formatNumber(totalOutcomeUSD)} | KHR: KHR {formatRiel(totalOutcomeKHR)}
         </div>
       </div>
 
@@ -288,11 +288,11 @@ function BalanceCard({ entries, selectedDate, currency }) {
         >
           {currency === "USD"
             ? (balanceUSD >= 0 ? "+" : "") + "$" + formatNumber(Math.abs(balanceUSD))
-            : (balanceKHR >= 0 ? "+" : "") + "៛" + formatRiel(Math.abs(balanceKHR))}
+            : (balanceKHR >= 0 ? "+" : "") + "KHR " + formatRiel(Math.abs(balanceKHR))}
         </div>
         <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
           USD: {balanceUSD >= 0 ? "+" : ""}${formatNumber(Math.abs(balanceUSD))} | KHR:{" "}
-          {balanceKHR >= 0 ? "+" : ""}៛{formatRiel(Math.abs(balanceKHR))}
+          {balanceKHR >= 0 ? "+" : ""}KHR {formatRiel(Math.abs(balanceKHR))}
         </div>
       </div>
 
@@ -400,7 +400,7 @@ function TransactionItem({ entry, currency, onEdit, onDelete }) {
             <span>
               {entry.currency === "USD"
                 ? "$ " + formatNumber(entry.amount)
-                : "\u17DB " + formatRiel(entry.amount)}
+                : "KHR " + formatRiel(entry.amount)}
             </span>
             {currency === "USD" && entry.currency === "KHR" && (
               <span className="text-gray-400 dark:text-gray-500 ml-1">
@@ -409,7 +409,7 @@ function TransactionItem({ entry, currency, onEdit, onDelete }) {
             )}
             {currency === "KHR" && entry.currency === "USD" && (
               <span className="text-gray-400 dark:text-gray-500 ml-1">
-                (~$\u17DB{formatRiel(convertedAmount * USD_TO_RIEL)})
+                (~$KHR {formatRiel(convertedAmount * USD_TO_RIEL)})
               </span>
             )}
           </div>
