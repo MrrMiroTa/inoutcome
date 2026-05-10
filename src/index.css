@@ -119,6 +119,12 @@ body {
   gap: 8px;
 }
 
+.app-title img.header-icon {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
 .app-subtitle {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.65);

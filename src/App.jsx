@@ -395,72 +395,79 @@ export default function App() {
     setEditingEntry(null);
   }, []);
 
-  const handleExportPDF = useCallback(() => {
-    const doc = new jsPDF("landscape", "mm", "a4");
+   const handleExportPDF = useCallback(() => {
+     const doc = new jsPDF("landscape", "mm", "a4");
 
-    doc.setFontSize(22);
-    doc.setTextColor(30, 58, 138);
-    doc.text("Income & Outcome Report", 148, 20, { align: "center" });
+     doc.setFontSize(22);
+     doc.setTextColor(30, 58, 138);
+     doc.text("Income & Outcome Report", 148, 20, { align: "center" });
 
-    doc.setFontSize(10);
-    doc.setTextColor(120);
-    doc.text("Generated: " + new Date().toLocaleString("en-US"), 148, 28, { align: "center" });
-    doc.text("Exchange Rate: 1 USD = 4,000 KHR", 148, 35, { align: "center" });
+     doc.setFontSize(10);
+     doc.setTextColor(120);
+     doc.text("Generated: " + new Date().toLocaleString("en-US"), 148, 28, { align: "center" });
+     doc.text("Exchange Rate: 1 USD = 4,000 KHR", 148, 35, { align: "center" });
 
-    const filtered = entries.filter((e) => e.date === selectedDate);
-    const incomeEntries = filtered.filter((e) => e.type === "income");
-    const outcomeEntries = filtered.filter((e) => e.type === "outcome");
+     const filtered = entries.filter((e) => e.date === selectedDate);
+     const incomeEntries = filtered.filter((e) => e.type === "income");
+     const outcomeEntries = filtered.filter((e) => e.type === "outcome");
 
-    const incomeUSD = incomeEntries.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0);
-    const incomeKHR = incomeEntries.filter((e) => e.currency === "KHR").reduce((s, e) => s + e.amount, 0);
-    const outcomeUSD = outcomeEntries.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0);
-    const outcomeKHR = outcomeEntries.filter((e) => e.currency === "KHR").reduce((s, e) => s + e.amount, 0);
+     const incomeUSD = incomeEntries.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0);
+     const incomeKHR = incomeEntries.filter((e) => e.currency === "KHR").reduce((s, e) => s + e.amount, 0);
+     const outcomeUSD = outcomeEntries.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0);
+     const outcomeKHR = outcomeEntries.filter((e) => e.currency === "KHR").reduce((s, e) => s + e.amount, 0);
 
-    const totalIncomeUSD = incomeUSD + incomeKHR / USD_TO_RIEL;
-    const totalOutcomeUSD = outcomeUSD + outcomeKHR / USD_TO_RIEL;
-    const balanceUSD = totalIncomeUSD - totalOutcomeUSD;
-    const totalIncomeKHR = incomeUSD * USD_TO_RIEL + incomeKHR;
-    const totalOutcomeKHR = outcomeUSD * USD_TO_RIEL + outcomeKHR;
-    const balanceKHR = totalIncomeKHR - totalOutcomeKHR;
+     const totalIncomeUSD = incomeUSD + incomeKHR / USD_TO_RIEL;
+     const totalOutcomeUSD = outcomeUSD + outcomeKHR / USD_TO_RIEL;
+     const balanceUSD = totalIncomeUSD - totalOutcomeUSD;
+     const totalIncomeKHR = incomeUSD * USD_TO_RIEL + incomeKHR;
+     const totalOutcomeKHR = outcomeUSD * USD_TO_RIEL + outcomeKHR;
+     const balanceKHR = totalIncomeKHR - totalOutcomeKHR;
 
-    doc.autoTable({
-      startY: 42,
-      head: [["Summary", "USD", "KHR"]],
-      body: [
-        ["Total Income", "$" + formatNumber(totalIncomeUSD), "KHR " + formatRiel(totalIncomeKHR)],
-        ["Total Outcome", "$" + formatNumber(totalOutcomeUSD), "KHR " + formatRiel(totalOutcomeKHR)],
-        ["Balance", (balanceUSD >= 0 ? "+" : "") + "$" + formatNumber(Math.abs(balanceUSD)), (balanceKHR >= 0 ? "+" : "") + "KHR " + formatRiel(Math.abs(balanceKHR))],
-      ],
-      styles: { fontSize: 10, cellPadding: 4 },
-      headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [240, 244, 255] },
-    });
+     doc.autoTable({
+       startY: 42,
+       head: [["Summary", "USD", "KHR"]],
+       body: [
+         ["Total Income", "$" + formatNumber(totalIncomeUSD), "KHR " + formatRiel(totalIncomeKHR)],
+         ["Total Outcome", "$" + formatNumber(totalOutcomeUSD), "KHR " + formatRiel(totalOutcomeKHR)],
+         ["Balance", (balanceUSD >= 0 ? "+" : "") + "$" + formatNumber(Math.abs(balanceUSD)), (balanceKHR >= 0 ? "+" : "") + "KHR " + formatRiel(Math.abs(balanceKHR))],
+       ],
+       styles: { fontSize: 10, cellPadding: 4 },
+       headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold" },
+       alternateRowStyles: { fillColor: [240, 244, 255] },
+     });
 
-    const tableBody = filtered
-      .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-      .map((entry) => [
-        entry.type === "income" ? "Income" : "Outcome",
-        entry.description,
-        entry.currency === "USD" ? "$" + formatNumber(entry.amount) : "KHR " + formatRiel(entry.amount),
-        entry.currency === "USD" ? "$" + formatNumber(entry.amount) : "$" + formatNumber(entry.amount / USD_TO_RIEL),
-        entry.date,
-      ]);
+     // Function to sanitize text for PDF (replace Khmer characters with asterisks)
+     const sanitizeForPDF = (text) => {
+       // Khmer Unicode range: U+1780–U+17FF
+       // Replace any Khmer characters with asterisks
+       return String(text).replace(/[\u1780-\u17FF]/g, '*');
+     };
 
-    doc.autoTable({
-      startY: doc.lastAutoTable.finalY + 10,
-      head: [["Type", "Description", "Original", "USD Equiv", "Date"]],
-      body: tableBody,
-      styles: { fontSize: 9, cellPadding: 3 },
-      headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold" },
-      alternateRowStyles: { fillColor: [245, 248, 255] },
-    });
+     const tableBody = filtered
+       .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+       .map((entry) => [
+         entry.type === "income" ? "Income" : "Outcome",
+         sanitizeForPDF(entry.description),
+         entry.currency === "USD" ? "$" + formatNumber(entry.amount) : "KHR " + formatRiel(entry.amount),
+         entry.currency === "USD" ? "$" + formatNumber(entry.amount) : "$" + formatNumber(entry.amount / USD_TO_RIEL),
+         entry.date,
+       ]);
 
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text("In-Outcome Tracker | " + new Date().toLocaleDateString("en-US") + " | Page " + doc.internal.getNumberOfPages(), 148, doc.internal.pageSize.height - 10, { align: "center" });
+     doc.autoTable({
+       startY: doc.lastAutoTable.finalY + 10,
+       head: [["Type", "Description", "Original", "USD Equiv", "Date"]],
+       body: tableBody,
+       styles: { fontSize: 9, cellPadding: 3 },
+       headStyles: { fillColor: [30, 58, 138], textColor: 255, fontStyle: "bold" },
+       alternateRowStyles: { fillColor: [245, 248, 255] },
+     });
 
-    doc.save("inoutcome-report-" + selectedDate + ".pdf");
-  }, [entries, selectedDate]);
+     doc.setFontSize(8);
+     doc.setTextColor(150);
+     doc.text("In-Outcome Tracker | " + new Date().toLocaleDateString("en-US") + " | Page " + doc.internal.getNumberOfPages(), 148, doc.internal.pageSize.height - 10, { align: "center" });
+
+     doc.save("inoutcome-report-" + selectedDate + ".pdf");
+   }, [entries, selectedDate]);
 
   const today = new Date().toISOString().split("T")[0];
   const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
@@ -470,10 +477,13 @@ export default function App() {
       {/* Header */}
       <header className="app-header">
         <div className="header-content">
-          <div className="header-left">
-            <h1 className="app-title">&#128176; In-Out Tracker</h1>
-            <p className="app-subtitle">Track your income and outcome daily</p>
-          </div>
+           <div className="header-left">
+             <h1 className="app-title">
+               <img src={money} alt="income" title="income" className="header-icon" />
+               In-Out Tracker
+             </h1>
+             <p className="app-subtitle">Track your income and outcome daily</p>
+           </div>
           <div className="header-right">
             <div className="header-controls">
               <label className="currency-label">Currency</label>
