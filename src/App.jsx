@@ -349,6 +349,108 @@ function TransactionItem({ entry, currency, onEdit, onDelete }) {
   );
 }
 
+// ─── SUBCOMPONENT: AllDaysSummary ───────────────────────────────────────────
+function AllDaysSummary({ entries, currency }) {
+  const incomeEntries = entries.filter((e) => e.type === "income");
+  const outcomeEntries = entries.filter((e) => e.type === "outcome");
+
+  const incomeUSD = incomeEntries.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0);
+  const incomeKHR = incomeEntries.filter((e) => e.currency === "KHR").reduce((s, e) => s + e.amount, 0);
+  const outcomeUSD = outcomeEntries.filter((e) => e.currency === "USD").reduce((s, e) => s + e.amount, 0);
+  const outcomeKHR = outcomeEntries.filter((e) => e.currency === "KHR").reduce((s, e) => s + e.amount, 0);
+
+  const totalIncomeUSD = incomeUSD + incomeKHR / USD_TO_RIEL;
+  const totalOutcomeUSD = outcomeUSD + outcomeKHR / USD_TO_RIEL;
+  const balanceUSD = totalIncomeUSD - totalOutcomeUSD;
+  const totalIncomeKHR = incomeUSD * USD_TO_RIEL + incomeKHR;
+  const totalOutcomeKHR = outcomeUSD * USD_TO_RIEL + outcomeKHR;
+  const balanceKHR = totalIncomeKHR - totalOutcomeKHR;
+
+  const uniqueDates = [...new Set(entries.map((e) => e.date))].length;
+
+  const displayIncome = currency === "USD"
+    ? "$" + formatNumber(totalIncomeUSD)
+    : "KHR " + formatRiel(totalIncomeKHR);
+  const displayOutcome = currency === "USD"
+    ? "$" + formatNumber(totalOutcomeUSD)
+    : "KHR " + formatRiel(totalOutcomeKHR);
+  const displayBalance = currency === "USD"
+    ? (balanceUSD >= 0 ? "+" : "") + "$" + formatNumber(Math.abs(balanceUSD))
+    : (balanceKHR >= 0 ? "+" : "") + "KHR " + formatRiel(Math.abs(balanceKHR));
+  const balancePositive = balanceUSD >= 0;
+
+  return (
+    <div className="stats-grid">
+      <div className="stat-card stat-income">
+        <div className="stat-label">All Income</div>
+        <div className="stat-value">{displayIncome}</div>
+        <div className="stat-sub">
+          USD: ${formatNumber(totalIncomeUSD)} | KHR: KHR {formatRiel(totalIncomeKHR)}
+        </div>
+      </div>
+
+      <div className="stat-card stat-outcome">
+        <div className="stat-label">All Outcome</div>
+        <div className="stat-value">{displayOutcome}</div>
+        <div className="stat-sub">
+          USD: ${formatNumber(totalOutcomeUSD)} | KHR: KHR {formatRiel(totalOutcomeKHR)}
+        </div>
+      </div>
+
+      <div className={`stat-card stat-balance ${balancePositive ? "positive" : "negative"}`}>
+        <div className="stat-label">All Balance</div>
+        <div className="stat-value">{displayBalance}</div>
+        <div className="stat-sub">
+          USD: {balanceUSD >= 0 ? "+" : ""}${formatNumber(Math.abs(balanceUSD))} |{" "}
+          KHR: {balanceKHR >= 0 ? "+" : ""}KHR {formatRiel(Math.abs(balanceKHR))}
+        </div>
+      </div>
+
+      <div className="stat-card stat-count">
+        <div className="stat-label">All Transactions</div>
+        <div className="stat-value">{entries.length}</div>
+        <div className="stat-sub">
+          Days: {uniqueDates} | Income: {incomeEntries.length} | Outcome: {outcomeEntries.length}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AllDaysTransactionList({ entries, currency, onEdit, onDelete }) {
+  const sorted = entries.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+
+  if (sorted.length === 0) {
+    return (
+      <div className="empty-state">
+        <div className="empty-icon">&#128466;</div>
+        <p className="empty-text">No transactions recorded</p>
+        <p className="empty-sub">Add your first entry using the form above.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="list-card">
+      <div className="list-header">
+        <h3 className="list-title">All Transactions</h3>
+        <span className="list-count">{sorted.length} entries</span>
+      </div>
+      <div className="list-body">
+        {sorted.map((entry) => (
+          <TransactionItem
+            key={entry.id}
+            entry={entry}
+            currency={currency}
+            onEdit={onEdit}
+            onDelete={onDelete}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN: App Component ─────────────────────────────────────────────────────
 export default function App() {
   const [entries, setEntries] = useState(loadEntries);
@@ -356,6 +458,7 @@ export default function App() {
   const [currency, setCurrency] = useState("USD");
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [editingEntry, setEditingEntry] = useState(null);
+  const [showAllDays, setShowAllDays] = useState(false);
   const refreshTimerRef = useRef(null);
 
   useEffect(() => {
@@ -504,46 +607,57 @@ export default function App() {
         </div>
       </header>
 
-      <main className="app-main">
-        {/* Date Selector */}
-        <div className="date-bar">
-          <label className="date-label">Date</label>
-          <div className="date-controls">
-            <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="date-input cusor-pointer" />
-            <div className="date-shortcuts">
-              <button onClick={() => setSelectedDate(today)} className="date-btn">Today</button>
-              <button onClick={() => setSelectedDate(yesterday)} className="date-btn">Yesterday</button>
-            </div>
-          </div>
-          <p className="date-info">1 USD = 4,000 KHR &bull; Auto-refresh every 30s</p>
-        </div>
+<main className="app-main">
+         {/* Date Selector */}
+         <div className="date-bar">
+           <label className="date-label">Date</label>
+           <div className="date-controls">
+             <input type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} className="date-input cusor-pointer" />
+             <div className="date-shortcuts">
+               <button onClick={() => { setSelectedDate(today); setShowAllDays(false); }} className={`date-btn ${!showAllDays && selectedDate === today ? "active" : ""}`}>Today</button>
+               <button onClick={() => { setSelectedDate(yesterday); setShowAllDays(false); }} className={`date-btn ${!showAllDays && selectedDate === yesterday ? "active" : ""}`}>Yesterday</button>
+               <button onClick={() => setShowAllDays(true)} className={`date-btn ${showAllDays ? "active" : ""}`}>All Day</button>
+             </div>
+           </div>
+           <p className="date-info">1 USD = 4,000 KHR &bull; Auto-refresh every 30s</p>
+         </div>
 
-        {/* Balance Cards */}
-        <BalanceCard entries={entries} selectedDate={selectedDate} currency={currency} />
+         {showAllDays ? (
+           <>
+             {/* All Days Summary */}
+             <AllDaysSummary entries={entries} currency={currency} />
 
-        {/* Export Button */}
-        <div className="export-center">
-          <button onClick={handleExportPDF} className="btn-export">
-            <span className="btn-export-icon">&#128196;</span> Export Report to PDF
-          </button>
-        </div>
+             {/* All Days Transaction List */}
+             <AllDaysTransactionList
+               entries={entries}
+               currency={currency}
+               onEdit={handleEdit}
+               onDelete={handleDelete}
+             />
+           </>
+         ) : (
+           <>
+             {/* Balance Cards */}
+             <BalanceCard entries={entries} selectedDate={selectedDate} currency={currency} />
 
-        {/* Transaction Form */}
-        <TransactionForm
-          onSubmit={handleSubmit}
-          editingEntry={editingEntry}
-          onCancel={handleCancel}
-        />
+             {/* Transaction Form */}
+             <TransactionForm
+               onSubmit={handleSubmit}
+               editingEntry={editingEntry}
+               onCancel={handleCancel}
+             />
 
-        {/* Transaction List */}
-        <TransactionList
-          entries={entries}
-          selectedDate={selectedDate}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-          currency={currency}
-        />
-      </main>
+             {/* Transaction List */}
+             <TransactionList
+               entries={entries}
+               selectedDate={selectedDate}
+               onEdit={handleEdit}
+               onDelete={handleDelete}
+               currency={currency}
+             />
+           </>
+         )}
+       </main>
 
       <footer className="app-footer">
         In-Outcome Tracker By Uzita &copy; {new Date().getFullYear()}

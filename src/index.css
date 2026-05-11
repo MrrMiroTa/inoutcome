@@ -291,10 +291,16 @@ body {
 }
 
 .date-btn:hover {
-  background: var(--blue-bg);
-  color: var(--accent);
-  border-color: var(--accent);
-}
+   background: var(--blue-bg);
+   color: var(--accent);
+   border-color: var(--accent);
+ }
+
+ .date-btn.active {
+   background: var(--accent);
+   color: #fff;
+   border-color: var(--accent);
+ }
 
 .date-info {
   font-size: 0.75rem;
